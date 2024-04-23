@@ -7,11 +7,15 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MusicLyricsClient {
 
     private final String searchEndpoint;
     private final String lyricsEndpoint;
+
+    private final ConcurrentHashMap<String, ArrayList<MusicData>> songCache;
+    private final ConcurrentHashMap<Long, MusicLyrics> lyricsCache;
 
     private final RequestHelper requestHelper;
 
@@ -19,10 +23,16 @@ public class MusicLyricsClient {
         this.searchEndpoint = "https://genius.com/api/search?q=";
         this.lyricsEndpoint = "https://genius.com/songs/%id%/embed.js";
 
+        this.songCache = new ConcurrentHashMap<>();
+        this.lyricsCache = new ConcurrentHashMap<>();
+
         this.requestHelper = new RequestHelper();
     }
 
     public ArrayList<MusicData> searchSong(final String query) {
+        if(this.songCache.containsKey(query))
+            return this.songCache.get(query);
+
         final String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
 
         try {
@@ -48,6 +58,9 @@ public class MusicLyricsClient {
                         song.getString("path"), song.getString("header_image_thumbnail_url")));
             }
 
+            if(!songs.isEmpty())
+                this.songCache.put(query, songs);
+
             return songs;
         } catch (Exception e) {
             return new ArrayList<>();
@@ -55,6 +68,9 @@ public class MusicLyricsClient {
     }
 
     public MusicLyrics fetchLyrics(final long id) {
+        if(this.lyricsCache.containsKey(id))
+            return this.lyricsCache.get(id);
+
         try {
             final URL url = new URL(this.lyricsEndpoint.replace("%id%", String.valueOf(id)));
             final HttpURLConnection connection = this.requestHelper.establishConnection(url, false);
@@ -71,8 +87,12 @@ public class MusicLyricsClient {
                 return null;
 
             final String lyrics = formatRawLyrics(rawInputStringBuilder.toString());
+            final MusicLyrics musicLyrics = new MusicLyrics(lyrics, id);
 
-            return new MusicLyrics(lyrics, id);
+            if(lyrics.length() > 50)
+                this.lyricsCache.put(id, musicLyrics);
+
+            return musicLyrics;
         } catch (Exception e) {
             e.printStackTrace();
             return null;

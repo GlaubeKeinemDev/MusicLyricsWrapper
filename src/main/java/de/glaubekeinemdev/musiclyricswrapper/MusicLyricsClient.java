@@ -83,7 +83,7 @@ public class MusicLyricsClient {
             while (scanner.hasNext())
                 rawInputStringBuilder.append(scanner.next());
 
-            if (rawInputStringBuilder.isEmpty())
+            if (rawInputStringBuilder.length() == 0 || rawInputStringBuilder.toString().equals(""))
                 return null;
 
             final String lyrics = formatRawLyrics(rawInputStringBuilder.toString());

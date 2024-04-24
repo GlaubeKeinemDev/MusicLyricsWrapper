@@ -53,8 +53,9 @@ public class MusicLyricsClient {
                 JSONObject song = jsonSongArray.getJSONObject(i).getJSONObject("result");
 
                 final String title = formatSpaces(song.getString("full_title"));
+                final String author = formatSpaces(song.getString("artist_names"));
 
-                songs.add(new MusicData(title, song.getLong("id"),
+                songs.add(new MusicData(title, author, song.getLong("id"),
                         song.getString("path"), song.getString("header_image_thumbnail_url")));
             }
 
